@@ -1,7 +1,8 @@
 CC =g++
+FLAGS = -lpthread
 
 make: server.cpp
-	$(CC) server.cpp -o server
+	$(CC) -I ../boost_1_84_0 server.cpp -o server $(FLAGS)
 
 clean:
 	rm server
