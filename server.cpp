@@ -10,12 +10,22 @@
 using tcp = boost::asio::ip::tcp;
 namespace http = boost::beast::http;
 
+http::response<http::string_body> handle500 (http::request<http::string_body> request) {
+	http::response<http::string_body> response;
+	response.version(request.version());
+	response.result(http::status::internal_server_error);
+	response.set(http::field::server, "customHTTPServer");
+	response.set(http::field::content_length, "0");
+	return response;
+
+}
+
 http::response<http::string_body> handleHTML (http::response<http::string_body> response, http::request<http::string_body> request) {
 	response.set(http::field::content_type, "text/html");
 	
 	std::string resource;
 	if (request.target() == "/") {
-		resource = "index.html";
+		resource = "test/index.html";
 	} else {
 		resource = request.target();
 		resource = resource.substr(1);
@@ -29,7 +39,7 @@ http::response<http::string_body> handleHTML (http::response<http::string_body> 
 		response.body() = buffer.str();
 		file.close();
 	} else {
-		response.body() = "Error: could not open HTML file";
+		response = handle500(request);
 	}
 	return response;
 }
@@ -50,7 +60,7 @@ http::response<http::string_body> handleJS (http::response<http::string_body> re
 		response.body() = buffer.str();
 		file.close();
 	} else {
-		response.body() = "Error: could not open JS file";
+		response = handle500(request);
 	}
 	return response;
 
@@ -72,7 +82,7 @@ http::response<http::string_body> handleCSS (http::response<http::string_body> r
 		response.body() = buffer.str();
 		file.close();
 	} else {
-		response.body() = "Error: could not open css file";
+		response = handle500(request);
 	}
 	return response;
 
@@ -91,8 +101,11 @@ void handleJPEG (http::request<http::string_body> request, tcp::socket& socket) 
 
 	std::ifstream image_file(resource, std::ios::binary);
 	if (!image_file.is_open()) {
-		std::cout << "Error: could not open JPEG image" << std::endl;
-		exit(3);
+		std::cout << "Could not open JPEG image" << std::endl;
+		http::response<http::string_body> stringResponse;
+		stringResponse = handle500(request);
+		stringResponse.prepare_payload();
+		http::write(socket, stringResponse);
 	}
 
 	image_file.seekg(0, std::ios::end); // set cursor to end of file
@@ -111,36 +124,102 @@ void handleJPEG (http::request<http::string_body> request, tcp::socket& socket) 
 	http::write(socket, response);
 }
 
+http::response<http::string_body> handleXML (http::response<http::string_body> response, http::request<http::string_body> request) {
+	
+	
+	response.set(http::field::content_type, "application/XML");
+	
+	std::string resource = request.target();
+	resource = resource.substr(1);
+
+	//load in XML file
+	std::ifstream file(resource);
+	if (file.is_open()) {
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+		response.body() = buffer.str();
+		file.close();
+	} else {
+		response.body() = "Error: could not open XML file";
+	}
+	return response;
+
+}
+
+http::response<http::string_body> handleFeedback (http::request<http::string_body> request) {
+	http::response<http::string_body> response;
+	response.version(request.version());
+	response.result(http::status::no_content);
+	response.set(http::field::server, "customHTTPServer");
+	response.set(http::field::content_length, "0");
+
+	std::cout << request.body() << std::endl;
+
+	return response;
+
+}
+
+http::response<http::string_body> handle404 (http::request<http::string_body> request) {
+	http::response<http::string_body> response;
+	response.version(request.version());
+	response.result(http::status::not_found);
+	response.set(http::field::server, "customHTTPServer");
+	response.set(http::field::content_length, "0");
+
+	return response;
+
+}
+
 void handleRequest (http::request<http::string_body>& request, tcp::socket& socket) {
 	http::response<http::string_body> response;
 
 	std::cout << "request method: " << request.method_string() << std::endl;
 	std::cout << "request target: " << request.target() << std::endl;
-	//std::cout << request body:  << request.base() << std::endl;
+	//std::cout << request body:   << request.base() << std::endl;
 
 	response.version(request.version());
 	response.result(http::status::ok);
 	response.set(http::field::server, "customHTTPServer");
 	
 	std::string target = request.target();
-	if (target.find(".html") != std::string::npos) {
-		response = handleHTML(response, request);
-		response.prepare_payload();
-		http::write(socket, response);
-	} else if (target.find(".js") != std::string::npos) {
-		response = handleJS(response, request);
-		response.prepare_payload();
-		http::write(socket, response);
-	} else if (target.find(".jpeg") != std::string::npos) {
-		handleJPEG(request, socket);
-	} else if (target.find(".css") != std::string::npos) {
-		response = handleCSS(response, request);
-		response.prepare_payload();
-		http::write(socket, response);
-	} else {
-		response = handleHTML(response, request);
-		response.prepare_payload();
-		http::write(socket, response);
+	if (request.method_string() == "GET") {
+		if (target == "/") {
+			response = handleHTML(response, request);
+			response.prepare_payload();
+			http::write(socket, response);
+			std::cout << "bosh" << std::endl;
+		} else if (target.find(".html") != std::string::npos) {
+			response = handleHTML(response, request);
+			response.prepare_payload();
+			http::write(socket, response);
+		} else if (target.find(".js") != std::string::npos) {
+			response = handleJS(response, request);
+			response.prepare_payload();
+			http::write(socket, response);
+		} else if (target.find(".jpeg") != std::string::npos) {
+			handleJPEG(request, socket);
+		} else if (target.find(".css") != std::string::npos) {
+			response = handleCSS(response, request);
+			response.prepare_payload();
+			http::write(socket, response);
+		} else if (target.find(".xml") != std::string::npos) {
+			response = handleXML(response, request);
+			response.prepare_payload();
+			http::write(socket, response);
+		} else {
+			//handle unknown target
+			response = handle404(request);
+			response.prepare_payload();
+			http::write(socket, response);
+		}
+	} else if (request.method_string() == "POST") {
+		if (target.find("feedback") != std::string::npos) {
+			response = handleFeedback(request);
+			response.prepare_payload();
+			http::write(socket, response);
+		} else {
+			std::cout << "Unknown POST target." << std::endl;
+		}
 	}
 
 	socket.shutdown(tcp::socket::shutdown_send);
@@ -148,7 +227,6 @@ void handleRequest (http::request<http::string_body>& request, tcp::socket& sock
 
 
 void runServer () {
-	try {
 
 	std::cout << "Server listening on port 8080 ... " << std::endl;
 
@@ -162,14 +240,14 @@ void runServer () {
 		acceptor.accept(socket);
 		boost::beast::flat_buffer buffer;
 		http::request<http::string_body> request;
-		http::read(socket, buffer, request);
-
+		try {	
+			http::read(socket, buffer, request);
+		} catch (std::exception& e) {
+			continue;
+		}
 		post(thread_pool, [socket = std::move(socket), request = std::move(request)]() mutable {
 				handleRequest(request, socket);
 		});
-	}
-	} catch (std::exception& e) {
-		std::cout << e.what() << std::endl;
 	}
 }
 
