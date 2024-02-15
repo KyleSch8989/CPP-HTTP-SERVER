@@ -142,15 +142,20 @@ void handleRequest (http::request<http::string_body>& request, tcp::socket& sock
 		response.prepare_payload();
 		http::write(socket, response);
 	}
+
+	socket.shutdown(tcp::socket::shutdown_send);
 }
 
 
 void runServer () {
+	try {
 
 	std::cout << "Server listening on port 8080 ... " << std::endl;
 
 	boost::asio::io_context io_context;
 	tcp::acceptor acceptor(io_context, {tcp::v4(), 8080});
+	
+	boost::asio::thread_pool thread_pool(4);
 
 	while (true) {
 		tcp::socket socket(io_context);
@@ -158,13 +163,13 @@ void runServer () {
 		boost::beast::flat_buffer buffer;
 		http::request<http::string_body> request;
 		http::read(socket, buffer, request);
-		
-		std::cout << "connection accepted" << std::endl;
 
-		handleRequest(request, socket);
-
-
-		socket.shutdown(tcp::socket::shutdown_send);
+		post(thread_pool, [socket = std::move(socket), request = std::move(request)]() mutable {
+				handleRequest(request, socket);
+		});
+	}
+	} catch (std::exception& e) {
+		std::cout << e.what() << std::endl;
 	}
 }
 
