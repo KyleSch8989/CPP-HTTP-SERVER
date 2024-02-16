@@ -20,10 +20,15 @@ A multi-threaded web server implemented in C++ that can handle HTTP requests con
 ### Building
 
 1. Clone the repository.
-
+```  
+git clone https://github.com/KyleSch8989/CPP-HTTP-SERVER.git
+cd CPP-HTTP-SERVER
+```
 2. Compile the source code:
-		g++ -I "path_to_boost_library" server.cpp -o server -lpthread
-
+```
+g++ -I "path_to_boost_library" server.cpp -o server -lpthread
+```
 3. Run the server:
-		./server
-
+```
+./server
+```
