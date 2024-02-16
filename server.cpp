@@ -175,7 +175,6 @@ void handleRequest (http::request<http::string_body>& request, tcp::socket& sock
 
 	std::cout << "request method: " << request.method_string() << std::endl;
 	std::cout << "request target: " << request.target() << std::endl;
-	//std::cout << request body:   << request.base() << std::endl;
 
 	response.version(request.version());
 	response.result(http::status::ok);
@@ -187,7 +186,6 @@ void handleRequest (http::request<http::string_body>& request, tcp::socket& sock
 			response = handleHTML(response, request);
 			response.prepare_payload();
 			http::write(socket, response);
-			std::cout << "bosh" << std::endl;
 		} else if (target.find(".html") != std::string::npos) {
 			response = handleHTML(response, request);
 			response.prepare_payload();
