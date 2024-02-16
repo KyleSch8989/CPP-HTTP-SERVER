@@ -32,3 +32,15 @@ g++ -I "path_to_boost_library" server.cpp -o server -lpthread
 ```
 ./server
 ```
+
+## General Showcase
+The 'test' directory includes some general web pages that can be used to showcase come of the functionallity of the server. These webpages are not built for any specific purpose other than demonstrating the HTTP server functionallity.
+
+### Conecting to test pages
+Type the following into a web browser
+```
+http://localhost:8080
+```
+```
+http://localhost:8080/test/dev.html
+```
