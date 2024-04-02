@@ -1,6 +1,6 @@
 # Concurrent C++ HTTP Web Server
 
-A multi-threaded web server implemented in C++ that can handle HTTP requests concurrently. This project aims to provide a robust and efficient solution for serving static and dynamic contnet over HTTP.
+A multi-threaded web server implemented in C++ that can handle HTTP requests concurrently. This project aims to provide a robust and efficient solution for serving static and dynamic content over HTTP.
 
 ## Features
 
